@@ -194,8 +194,7 @@ def create_keypairs(provider):
     client_id = getattr(g, 'client_id', None)
     if provider == 'cdis':
         # requestor is user if client_id is not set
-        if client_id is None:
-            client_id = str(g.user.id)
+        client_id = str(g.user.id)
         if flask.request.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             scopes = request.form.getlist("scope")
         else:

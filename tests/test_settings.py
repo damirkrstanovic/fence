@@ -49,17 +49,26 @@ STORAGE_CREDENTIALS = {
 
 AWS_CREDENTIALS = {
     "CRED1": {
-        'aws_access_key_id': '',
-        'aws_secret_access_key': ''
+        'aws_access_key_id': 'AKIDEXAMPLE',
+        'aws_secret_access_key': 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY'
     },
     "CRED2": {
-        'aws_access_key_id': '',
-        'aws_secret_access_key': ''
+        'aws_access_key_id': 'AKIDEXAMPLE',
+        'aws_secret_access_key': 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY'
     }
 }
 
 S3_BUCKETS = {
-    "bucket1": "CRED1",
-    "bucket2": "CRED2",
-    "bucket3": "CRED1"
+    "bucket1": {
+        "cred": "CRED1",
+        "region": "us-east-1"
+    },
+    "bucket2": {
+        "cred": "CRED2",
+        "region": "us-east-1"
+    },
+    "bucket3": {
+        "cred": "CRED1",
+        "region": "us-east-1"
+    }
 }

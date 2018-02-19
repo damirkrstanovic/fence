@@ -40,6 +40,11 @@ class BotoManager(object):
         )
         return url
 
+    def get_bucket_region(self, bucket, config):
+        if config.has_key('aws_access_key_id'):
+            self.s3_client = client('s3', **config)
+        return self.s3_client.get_bucket_location(Bucket=bucket)
+
     def get_all_groups(self, list_group_name):
         '''
         Get all group listed in the list_group_name.

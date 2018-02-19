@@ -7,6 +7,7 @@ import json
 import jwt
 import mock
 from mock import patch, MagicMock
+from moto import mock_s3, mock_sts
 import os
 
 from addict import Dict
@@ -215,6 +216,8 @@ def protected_endpoint(methods=['GET']):
 
 
 @pytest.fixture(scope='function')
+@mock_s3
+@mock_sts
 def user_client(app, request, db_session):
     users = dict(json.loads(
         utils.read_file('resources/authorized_users.json')

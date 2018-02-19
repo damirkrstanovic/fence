@@ -1,22 +1,19 @@
 from urlparse import urlparse
 
 import flask
-from flask import current_app
 import requests
-
+from flask import current_app
+from flask import jsonify
+from urlparse import urlparse
 from fence.auth import login_required
-from fence.errors import (
-    UnavailableError,
-    NotFound,
-    Unauthorized,
-    NotSupported,
-    InternalError,
-)
+from flask import current_app as capp
+from cdispyutils.hmac4 import generate_aws_presigned_url
+from ..errors import UnavailableError, NotFound, Unauthorized, NotSupported, InternalError
 
 ACTION_DICT = {
     "s3": {
-        "upload": "put_object",
-        "download": "get_object"
+        "upload": "PUT",
+        "download": "GET"
     },
     "http": {
         "upload": "put_object",
@@ -91,26 +88,35 @@ def check_protocol(protocol, scheme):
 def resolve_url(url, location, expires, action):
     protocol = location.scheme
     if protocol == 's3':
+        if 'AWS_CREDENTIALS' not in capp.config:
+            raise InternalError('credential not found')
         aws_creds = current_app.config['AWS_CREDENTIALS']
-        if 'AWS_CREDENTIALS' in current_app.config and len(aws_creds) > 0:
-            buckets = flask.current_app.config['S3_BUCKETS']
-            if location.netloc not in buckets.keys():
+        if len(capp.config['AWS_CREDENTIALS']) > 0:
+            if location.netloc not in capp.config['S3_BUCKETS'].keys():
                 raise Unauthorized('permission denied for bucket')
-            if buckets[location.netloc] not in aws_creds:
+            if location.netloc in capp.config['S3_BUCKETS'].keys() and \
+                    capp.config['S3_BUCKETS'][location.netloc]['cred'] not in aws_creds:
                 raise Unauthorized('permission denied for bucket')
-        credential_key = buckets[location.netloc]
-        url = current_app.boto.presigned_url(
-            location.netloc,
-            location.path.strip('/'),
-            expires,
-            aws_creds[credential_key],
-            ACTION_DICT[protocol][action],
-        )
+        credential_key = capp.config['S3_BUCKETS'][location.netloc]['cred']
+        region = capp.config['S3_BUCKETS'][location.netloc]['region']
+        config = capp.config['AWS_CREDENTIALS'][credential_key]
+        http_url = 'https://{}.s3.amazonaws.com/{}'.format(location.netloc, location.path.strip('/'))
+        if 'aws_access_key_id' not in config:
+            raise Unauthorized('credential is not configured correctly')
+        else:
+            aws_access_key_id = config['aws_access_key_id']
+            aws_secret_key = config['aws_secret_access_key']
+        url = generate_aws_presigned_url(http_url, ACTION_DICT[protocol][action],
+                                         aws_access_key_id, aws_secret_key, 's3',
+                                         region, expires,
+                                         {
+                                             'user_id': str(flask.g.user.id),
+                                             'username': flask.g.user.username
+                                         })
     elif protocol not in ['http', 'https']:
         raise NotSupported(
-            'protocol {} in URL {} is not supported'.format(protocol, url)
-        )
-    return flask.jsonify(dict(url=url))
+            "protocol {} in url {} is not supported".format(protocol, url))
+    return jsonify(dict(url=url))
 
 
 def return_link(action, urls):
